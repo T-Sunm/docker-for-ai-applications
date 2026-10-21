@@ -1,0 +1,19 @@
+# --- Web API ---
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+
+# --- Image + numeric ---
+pillow>=10.0
+numpy>=1.26
+scikit-learn>=1.4
+
+# --- OCR / detection engines ---
+rapidocr-onnxruntime==1.4.4
+onnxruntime>=1.16
+
+# --- PyTorch transformer engines (TrOCR, YOLOS) ---
+torch>=2.2
+torchvision>=0.17
+transformers>=4.44
+huggingface-hub>=0.24

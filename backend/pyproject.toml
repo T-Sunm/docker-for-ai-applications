@@ -1,0 +1,18 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "huggingface-hub>=0.24",
+    "numpy>=1.26",
+    "onnxruntime>=1.16",
+    "pillow>=10.0",
+    "python-multipart>=0.0.9",
+    "rapidocr-onnxruntime==1.4.4",
+    "scikit-learn>=1.4",
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "transformers>=4.44",
+    "uvicorn[standard]>=0.30",
+]
