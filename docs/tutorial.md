@@ -1,10 +1,20 @@
+## 1. Giới thiệu
+
+Một AI application có thể chạy tốt trên máy development nhưng gặp vấn đề khi được chuyển sang một máy hoặc môi trường khác. Ngoài source code, ứng dụng còn cần đúng thư viện, model files, cấu hình và cách khởi động các thành phần liên quan. Khi project có thêm frontend, backend và nhiều model phục vụ inference, việc chuẩn bị từng phần bằng tay cũng ngày càng khó duy trì. Docker giúp đưa các thành phần này vào một quy trình nhất quán hơn, từ đóng gói môi trường chạy đến vận hành và phát hành application.
+
+![Dockerized AI Application Overview](<images/overview.png>)
+
+**Hình 1. Tổng quan kiến trúc và workflow Docker của AI application.**
+
+Từ bài toán đó, bài viết bắt đầu với việc tạo image và chạy service trong container, sau đó mở rộng sang kiểm soát quá trình build, quản lý model artifacts và vận hành nhiều thành phần bằng Docker Compose. Khi application đã hoạt động đầy đủ, các image tiếp tục được kiểm tra, tối ưu và publish lên container registry, hoàn thiện quá trình từ development đến release.
+
 ## 2. Container hóa ứng dụng
 
 Để chạy được trên một môi trường, ứng dụng không chỉ cần mã nguồn mà còn phụ thuộc vào runtime phù hợp, các thư viện cần thiết, cấu hình và lệnh khởi động. Nếu những thành phần này khác nhau giữa các môi trường, ứng dụng có thể không khởi động hoặc hoạt động như mong đợi. Container hóa giúp chuẩn hóa cách chuẩn bị môi trường thực thi, nhờ đó ứng dụng có thể được triển khai nhất quán hơn ở nơi khác.
 
 Để tạo ra môi trường đó, Docker sử dụng các chỉ dẫn trong Dockerfile để build một container image. Image là một artifact chỉ đọc, được dùng làm khuôn mẫu để tạo container. Khi container được khởi chạy, ứng dụng bắt đầu thực thi bên trong môi trường này. Ta có thể gửi request qua cổng đã publish đến endpoint của service, sau đó kiểm tra response để xác nhận service hoạt động đúng.
 
-**[FIGURE – General Workflow for Containerizing an Application]**
+![General Workflow for Containerizing an Application](<images/Containerization Workflow Overview.png>)
 
 **Hình 2. Quy trình tổng quát khi container hóa một ứng dụng, từ yêu cầu thực thi đến image, container đang chạy và bước kiểm tra service.**
 
@@ -59,7 +69,7 @@ Nếu ứng dụng cung cấp dịch vụ qua mạng, process bên trong contain
 
 Chỉ dẫn `EXPOSE 8080` trong Dockerfile chỉ mô tả port mà ứng dụng dự kiến sử dụng bên trong container. Nó không tự publish port ra host, vì vậy khi chạy container vẫn cần sử dụng tùy chọn `-p` nếu muốn client bên ngoài truy cập service. 
 
-**[FIGURE – From Container Image to Running Container]**
+![From Container Image to Running Container](<images/From Container Image to Running Container.png>)
 
 **Hình 3. Quan hệ giữa image, running container và đường đi của request tới ứng dụng bên trong container.**
 
@@ -71,7 +81,7 @@ Sau khi container được khởi chạy và port được publish, client có t
 
 Bước xác minh này kiểm tra khả năng truy cập service và luồng xử lý request ở mức cơ bản, nhưng chưa thay thế cho việc kiểm tra đầy đủ logic của ứng dụng. Nếu service không khởi động hoặc request không được xử lý như mong đợi, có thể xem output mà ứng dụng ghi vào `stdout` và `stderr` bằng `docker logs <container_name>`. Các log này cung cấp thông tin trong quá trình khởi động và xử lý request, qua đó hỗ trợ tìm nguyên nhân của lỗi bên trong container.
 
-**[FIGURE – Verifying a Containerized Service]**
+![Verifying a Containerized Service](<images/Containerized Service Verification Flowchart.png>)
 
 **Hình 4. Luồng xác minh containerized service thông qua request, response và container logs.**
 
@@ -81,7 +91,7 @@ Qua bước này, backend đã đi qua quy trình containerization cơ bản t�
 
 Ở mục trước, Dockerfile được sử dụng để tạo image, sau đó image được khởi chạy thành container và service được kiểm tra từ bên ngoài. Khi image cần được build lại sau mỗi lần ứng dụng thay đổi, runtime và dependencies trở thành các build input cần được kiểm soát về version, trong khi cách tổ chức các instruction trong Dockerfile ảnh hưởng đến khả năng tái sử dụng build cache. Sau quá trình build, container image được tạo ra như một artifact và có thể được kiểm tra lại thông qua configuration và metadata. Vì vậy, mục này tập trung vào ba khía cạnh: xác định môi trường thực thi, tổ chức quá trình build hiệu quả và kiểm tra image được tạo ra.
 
-**[FIGURE – Building and Inspecting a Container Image]**
+![Building and Inspecting a Container Image](<images/Building and Inspecting a Container Image.png>)
 
 **Hình 5. Mối quan hệ giữa các build input, quá trình Docker xử lý Dockerfile, container image được tạo ra và thao tác kiểm tra image sau khi build.**
 
@@ -98,7 +108,7 @@ Các dependencies có thể được chia thành hai nhóm dựa trên vai trò 
 
 Base image cung cấp nền ban đầu cho môi trường, còn các instruction trong Dockerfile xác định những dependencies nào cần được bổ sung thêm. Khi runtime và dependencies đã được xác định, cách sắp xếp các instruction này sẽ ảnh hưởng đến khả năng tái sử dụng build cache khi image được build lại.
 
-**[FIGURE – Application Environment: Runtime and Dependencies]**
+![Application Environment: Runtime and Dependencies](<images/Application Environment Architecture Diagram.png>)
 
 **Hình 6. Quan hệ giữa base image, runtime và các nhóm dependencies tạo nên môi trường thực thi của ứng dụng.**
 
@@ -116,7 +126,7 @@ Trong lần build tiếp theo, Docker kiểm tra từng bước để xác đị
 
 Để hạn chế số bước phải build lại, các instruction thường được sắp xếp theo nguyên tắc **stable first, volatile last**, tức những thành phần ít thay đổi được xử lý trước và những thành phần thay đổi thường xuyên hơn được đưa về sau. Chẳng hạn, tệp khai báo dependencies thường ổn định hơn mã nguồn ứng dụng. Nếu tệp này được copy và dependencies được cài đặt trước khi mã nguồn được đưa vào image, một thay đổi chỉ ở mã nguồn vẫn có thể giữ lại cache của bước cài dependencies. Ngược lại, nếu toàn bộ project được copy trước, thay đổi trong mã nguồn sẽ khiến bước `COPY` và các bước phía sau không thể tái sử dụng cache, ngay cả khi danh sách dependencies không đổi. 
 
-**[FIGURE – Image Layers and Build Cache]**
+![Image Layers and Build Cache](<images/Docker Build Cache_ Stable First, Volatile Last.png>)
 
 **Hình 7. Ảnh hưởng của thứ tự các instruction trong Dockerfile đến image layers và khả năng tái sử dụng build cache khi mã nguồn thay đổi.**
 
@@ -143,7 +153,7 @@ Build thành công chỉ cho biết Docker đã tạo được image. Khi cần 
 
 Các command này giúp kiểm tra image sau build, chẳng hạn image đang được tham chiếu bằng tag nào và có configuration như thế nào. Việc service có hoạt động đúng hay không cần được kiểm tra khi image được chạy thành container.
 
-**[FIGURE – Build Input Versioning and Image Inspection]**
+![Build Input Versioning and Image Inspection](<images/Build Input Versioning and Inspection.png>)
 
 **Hình 8. Mối quan hệ giữa việc kiểm soát version của các build input, quá trình tạo image và việc kiểm tra image sau build.**
 
@@ -196,7 +206,7 @@ Từ đó, các thành phần mà backend cần có thể được chia thành b
 - Model artifacts được chuẩn bị và lưu riêng.
 - Các giá trị cấu hình được truyền vào khi container chạy.
 
-**[FIGURE – Separating Application, Model Artifacts, and Runtime Configuration]**
+![Separating Application, Model Artifacts, and Runtime Configuration](<images/Separating Inference Container Components.png>)
 
 **Hình 9. Phân tách application image, model artifacts và runtime configuration trong backend hiện tại.**
 
@@ -221,7 +231,7 @@ Tutorial này sử dụng một named volume tên `model-artifacts`. Đây là v
 
 > **Named volume** là volume có tên do Docker quản lý và có thể được sử dụng lại bởi nhiều container.
 
-**[FIGURE – Preparing and Reusing Model Artifacts with a Named Volume]**
+![Preparing and Reusing Model Artifacts with a Named Volume](<images/Model Artifact Preparation and Reuse Flow.png>)
 
 **Hình 10. Chuẩn bị và tái sử dụng model artifacts qua Docker named volume.**
 
@@ -330,7 +340,7 @@ Invoke-RestMethod `
 
 Iris classification xác nhận backend có thể load một model artifact từ volume và thực hiện prediction thật trên CPU. Các endpoint inference còn lại như RapidOCR, TrOCR và YOLOS sẽ được kiểm tra đầy đủ hơn bằng smoke test ở phần kiểm chứng ứng dụng.
 
-**[FIGURE – Artifact and Runtime Verification]**
+![Artifact and Runtime Verification](<images/model-artifacts-and-backend-startup.png>)
 
 **Hình 11. Kết quả kiểm tra model artifacts và runtime inference.**
 
@@ -360,7 +370,7 @@ Thay vì duy trì nhiều lệnh `docker run` riêng, project sử dụng Compos
 
 Service chuẩn bị model và backend cùng sử dụng volume `model-artifacts`, trong đó `prepare-models` cần quyền đọc và ghi để tạo artifacts, còn backend chỉ cần đọc các file đã được chuẩn bị. Frontend không truy cập model trực tiếp mà gọi API của backend qua `http://backend:8000` trong mạng mặc định do Compose tạo ra.
 
-🚩 **[FIGURE: Docker Compose Application Overview]**
+![Docker Compose Application Overview](<images/Docker Compose Architecture Overview.png>)
 
 **Hình 12. Tổng quan mối quan hệ giữa build contexts, images, services, volume dùng chung cho model artifacts và kết nối giữa frontend với backend.**
 
@@ -470,7 +480,7 @@ environment:
 
 Sau khi các service đã được tổ chức trong Compose, ứng dụng cần xử lý hai mối quan hệ khác nhau. Khi chạy, frontend phải biết cách gửi request tới backend. Trong quá trình khởi động, backend chỉ nên bắt đầu sau khi `prepare-models` hoàn thành thành công, còn frontend cần chờ backend phản hồi được `/health`.
 
-🚩 **[FIGURE: Service Communication and Startup Coordination]**
+![Service Communication and Startup Coordination](<images/Docker Compose Service Communication Diagram.png>)
 
 **Hình 13. Giao tiếp giữa các service trong mạng Compose và các điều kiện phối hợp thứ tự khởi động.**
 
@@ -615,7 +625,7 @@ docker compose ps -a
 
 Tùy chọn `-a` giúp hiển thị cả container đang chạy lẫn container đã kết thúc. Điều này cần thiết với `prepare-models` vì đây là one-shot service. Kết quả mong đợi là `prepare-models` ở trạng thái `Exited (0)`, backend đang chạy và đạt trạng thái `healthy`, còn frontend tiếp tục chạy để phục vụ giao diện.
 
-🚩 **[FIGURE: Docker Compose Service Status]**
+![Docker Compose Service Status](<images/docker-compose-service-status.png>)
 
 **Hình 14. Trạng thái các service sau khi khởi động bằng Docker Compose.**
 
@@ -644,7 +654,7 @@ Invoke-RestMethod `
 
 Nếu request trả về prediction, backend không chỉ vượt qua healthcheck mà còn có thể load model artifact từ `model-artifacts` và thực hiện inference. Bước kiểm tra cuối cùng là mở frontend tại `http://localhost:8501`, gửi một request OCR từ giao diện và xác nhận kết quả được trả về. Khi đó, luồng `frontend → backend → inference → result` đã được kiểm tra từ đầu đến cuối.
 
-🚩 **[FIGURE: Frontend OCR Verification]**
+![Frontend OCR Verification](<images/docker-compose-ocr-result.png>)
 
 **Hình 15. Kết quả OCR khi kiểm tra luồng frontend–backend trên ứng dụng.**
 
@@ -672,7 +682,7 @@ Với project này, điều đó đồng nghĩa dữ liệu trong `model-artifac
 
 Đến thời điểm này, application đã được container hóa hoàn chỉnh và có thể chạy qua Docker Compose. Frontend cũng cho phép người dùng trực tiếp thử các chức năng inference, vì vậy vấn đề tiếp theo không còn là làm sao để application chạy được, mà là **các Docker image hiện tại đã đủ gọn, an toàn và thuận tiện để chia sẻ hay chưa**. Đây là lúc chuyển từ một image chủ yếu được tạo để application hoạt động đúng sang một image được chuẩn bị kỹ hơn cho việc sử dụng và phát hành.
 
-🚩 **[FIGURE: Docker Image Optimization and Release Overview]**
+![Docker Image Optimization and Release Overview](<images/Containerization and Deployment Workflow.png>)
 
 **Hình 16. Tổng quan quá trình từ application đang hoạt động đến Docker image được tối ưu, kiểm tra lại và phát hành.**
 
@@ -839,7 +849,7 @@ python scripts\smoke_test.py
 
 Có thể mở thêm `http://localhost:8501` và thử một request từ giao diện để kiểm tra luồng sử dụng thực tế.
 
-🚩 **[FIGURE: Publishing, Pulling and Verifying Docker Images]**
+![Publishing, Pulling and Verifying Docker Images](<images/docker-images-publish-pull-verify.png>)
 
 **Hình 17. Kết quả publish backend và frontend image lên Docker Hub, pull lại version `1.0` để chạy bản release, sau đó kiểm tra trạng thái các service và smoke test.**
 
