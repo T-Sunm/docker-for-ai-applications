@@ -1,0 +1,75 @@
+- [Instructor] When you write a Dockerfile,
+every from, workdir, run, copy or add instruction
+creates a new layer in the final image.
+We can reduce the number of layers that are built
+by combining instructions in the Dockerfile.
+Here, I'm in VS Code, and I have our Dockerfile open.
+Let's build our image
+so we can view the layers in the output.
+Open a terminal and type docker build, the -t flag,
+then the name and version of our image, which is 2.3.3,
+and then end with a period for the build context.
+The layers are numbered in the output,
+and you can see that we currently have eight layers.
+There are separate layers for the from, workdir,
+copy, and run instructions from the Dockerfile.
+Let's take a look at the Dockerfile
+to see what instructions we can combine.
+If you look at the run instructions
+to create a non-route group and user,
+you'll see that there are two separate instructions.
+We can group these together because they're related,
+so we don't need separate layers for both.
+On the line that says run add group, add a backslash.
+This tells the Dockerfile
+that the command will be continued on the next line.
+Then, on the next line, remove the run instruction
+and replace it with two ampersands.
+I also like to indent lines
+so they appear under the previous command
+for better readability.
+Now, instead of two separate layers
+for each run instruction,
+we'll have one layer for our combined instruction.
+We can combine another run instruction here.
+The run chown instruction
+sets which user and group own the files.
+Copy this instruction, and then add another backslash
+after the add user instruction.
+On the next line, add two ampersands
+and paste the chown command.
+We can also improve the run npm ci command.
+The npm ci command installs your node JS dependencies fresh,
+exactly as locked in your package lock.JSON.
+It also deletes any existing node modules
+and does a clean reproducible install
+perfect for CICD and keeping builds consistent.
+On alpine based images,
+the APK package manager caches index and package files.
+We want to delete the cache files
+to make a more lightweight image.
+After the npm ci command, add two ampersands,
+then rm, the rf flag, and the folder we want to remove,
+which is var, cache, apk, and then asterisk.
+Now let's build our image again
+using the Docker build command.
+We'll continue to use version 2.3.3 of our image.
+This time, you'll see that there are only six layers,
+not eight.
+Step four is the combined npm ci
+and APK cache removal instruction.
+Step five includes all three instructions
+for creating the app group, app user,
+and changing the owner of the files accordingly.
+A good rule of thumb is to bundle steps
+that always change together.
+For example, creating your non-root user
+and fixing permissions.
+But if a build step often fails,
+isolating it into its own layer
+makes it easier to pinpoint errors.
+With a few well placed line continuations
+and clear comments, you'll end up with a Dockerfile
+that's both efficient and maintainable.
+In the next video, we'll have a quick challenge
+to optimize a Dockerfile.

@@ -1,0 +1,52 @@
+We now have a dedicated images for the ingestion and query services, along with
+our database container.
+In this lesson, we'll use Docker Compose to bring all three services together into
+a single application stack.
+We'll start with the concepts on the slides, then switch to the terminal and
+run everything in practice.
+We already used Docker Compose in Chapter 3, so the tool itself is familiar.
+familiar.
+What's different here is the purpose of the compose file.
+In chapter 3 we use a development compose file.
+It mounted our source code into the container and keep the environment running
+so we could edit code interactively.
+This time we are using a test compose file.
+There are no source mounts and no development shell.
+Each container runs directly from the image we built in the previous lesson.
+That means we are testing the same artifacts we would use in production.
+The stack consists of three services connected on a shared network.
+The ingestion service on port 8081, the query service on port 8080, and Chroma DB
+on port 8000.
+The ingestion and query services are built directly from the Dockerfiles we created
+in previous lesson.
+Compose doesn't just run containers, it also builds the image for us.
+That other important addition is a database health check combined with
+depends on.
+Why do we need a health check?
+By itself, depends on only waits for a container to start.
+It doesn't guarantee that the service inside the container is ready to accept
+connections.
+For the database, that difference matters.
+The container may be running while the database is still initializing.
+The health check solves this problem.
+problem.
+Compose repeatedly checks the database heartbeat endpoint and waits until it
+reports healthy.
+Only then the ingestion and query services start.
+This prevents startup failures caused by services trying to connect before the
+database is ready.
+Let's go back to the terminal and see how it works.
+We are now on VS Code, and we have the new Docker file, docker-compose.test.yml,
+which you can find under the chapter 4 subfolder L3 in the course repository.
+And as you can see, this Docker file followed the exact same structure as
+before, where we have the services, you have the network definition followed by
+the services.
+Well, now we just have three different services, the ingestion with the image we
+created before.
+There is the dependency that we set on the health check.
+There is the query service.
+And last but not least, there is the Chroma DB.
+So if we will go over here and do from the terminal on the same folder,
+docker-compose-app.
+And we have those three containers up and now it's loading it.
+and we can now SSH to the API.

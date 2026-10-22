@@ -1,0 +1,66 @@
+- [Instructor] When you're working with Docker files,
+you've got to keep them secure
+so that you're not introducing vulnerabilities
+into your CI/CD pipeline.
+Let's look at a few ways
+we can incorporate basic security practices
+to ensure that our image is secure.
+First, let's check to see if an image
+contains any vulnerabilities.
+In Docker Hub, I'm on the Tags page
+for the official node image.
+There's a column for Vulnerabilities,
+which shows any reported cybersecurity vulnerabilities
+for the image, as well as their severity.
+Let's scroll down until we find an image
+that has vulnerabilities and click on that.
+Here, you can view CVEs
+or common vulnerabilities and exposures.
+CVE is a dictionary
+of publicly disclosed cybersecurity vulnerabilities.
+You can expand any CVE to view more information.
+If there's a fix available,
+you can view it in the Fix version row.
+If we were using this image,
+we would want to update the Docker file
+with the new base image.
+Let's take a look at the base image we are using,
+which is current alpine3, version 22.
+At the time of this recording,
+there are no known vulnerabilities for this image,
+so we are good to go.
+Next, never use ENV or ARG instructions for your API keys,
+passwords, or tokens in the Docker file.
+Instead, you want to inject secrets at runtime
+via environment variables
+or secrets in your orchestrator like Kubernetes.
+Refer to your orchestrator's documentation
+on how to do this.
+And my last piece of advice is to run commands
+inside your container as a non-root user.
+If you look at the code branch
+for this video in our project,
+you'll see that I've updated the Docker file.
+I've added instructions to create a non-root group and user.
+This is a common instruction for Linux-based containers.
+Then, I adjusted the ownership
+of the copied application code
+using the RUN chown instruction.
+And finally, I switched to the non-root user
+with the USER instruction.
+To make sure our project still runs,
+open a terminal and type docker build,
+the t flag, the name of the image,
+then a colon and the image version, which is 2.3.3,
+and then a period for the build context.
+Now, let's run our container
+to test that the image is working.
+Type docker run, then the p flag,
+3000:3000, and the image name and version.
+Open a browser and navigate to localhost:3000.
+You should see the message, Hello from Docker!
+It works!
+By scanning for vulnerabilities, managing secrets,
+and running processes as a non-root user,
+you secure your images
+and prevent introducing vulnerabilities into your project.

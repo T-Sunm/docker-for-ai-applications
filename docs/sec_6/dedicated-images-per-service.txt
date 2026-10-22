@@ -1,0 +1,75 @@
+In the previous lesson, we reviewed the motivation to split the application into
+separate services.
+In this lesson, we will build a dedicated image for each one.
+We'll start with the design on the slides, then switch to the terminal and build the
+images.
+The key decision is simple.
+One image for ingestion and one image for query.
+Each service gets its own Dockerfile and dependency set.
+Let's start with the dependencies, because that's where the split delivers the
+biggest benefit.
+The ingestion service parses PDFs, so it requires Docling and its supporting
+libraries.
+The query service never parses documents.
+It retrieves context and calls an LLM.
+As a result, we maintain two requirements files.
+Requirements-ingestion.txt
+contains Docling and the embedding stack.
+Requirements-query contains only the libraries needed for serving queries, such
+as FastAPI, LangChain clients, and the ChromaDB client.
+The key difference is that the query image does not include Docling or any of its
+dependencies.
+Next, the application entry points.
+Today, all routes live in a single FastAPI application.
+To support dedicated services, we split those routes into two routes, one for
+ingestion and one for query.
+We then create two lightweight application modules, Ingestion underscore app dot py
+expose only the ingestion routes, while query underscore app dot py expose only
+the query routes.
+Both keeps the health endpoint.
+This separation matters because the query application never import the ingestion
+code.
+As a result, it never loads Docling and can remain lightweight.
+Now, for the Docker files.
+Both follow the same best practices from earlier chapters.
+A pin-based image, dependency layers before application code, and executable
+with the CMD commands.
+The differences are minimal.
+The requirements, file, the application entry point, and the exposed port.
+The query image uses the lightweight dependency set, while the ingestion image
+adds the system libraries required by Docling and runs on port 8081.
+Let's go back to VS Code and build them.
+I'm now on VS Code.
+Let's review now the Docker files for the query and ingestion pipelines.
+Both Docker files are under the chapter four library subfolder L2, under the root
+folder of the course repository.
+As you can see, the query and the ingestion pipeline follow the exact same
+steps.
+The only difference is the requirements and the files that are copied during the
+build time, which is unique for each one.
+Each has its own unique requirements one.
+And in order to build them, I created a dedicated bash script that essentially
+enable us to tag the label and define the Dockerfile we want to run.
+And it's, again, following the best practices we talked in the previous
+chapter.
+So, since we are going to call it from the main root folder of the repository, I'm
+over here in the root folder.
+And now let's call those bash scripts.
+So, bash chapter two, and let's start with the query.
+And since I already ran it before, it's cached the layers.
+So you can see it's running really fast.
+And let's do the same thing now, ingestion, and also in this case, it's
+cached.
+Now, one thing interesting to look at, this is the summary of the images that we
+have so far used.
+And you can see the ingestion pipeline is close to 10 GB, where the query pipeline
+is less than 1 GB.
+So you see the difference in the motivation, why we want to separate.
+And the ingestion has a heavy dependencies on the Docling, which inflate this image
+size.
+One more interesting to notice is that the development image we use so far is almost
+a double.
+So you can see the motivation, right?
+We started with prototype, a big image, and now we're doing the optimization.
+And the goal is to make them light, that they can run in production.
+And we can now test them.

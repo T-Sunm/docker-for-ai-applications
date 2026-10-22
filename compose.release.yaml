@@ -1,0 +1,44 @@
+services:
+  prepare-models:
+    image: ${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/multi-model-ai-backend:${IMAGE_TAG:-1.0}
+    command: ["python", "scripts/prepare_models.py"]
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - model-artifacts:/models
+
+  backend:
+    image: ${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/multi-model-ai-backend:${IMAGE_TAG:-1.0}
+    depends_on:
+      prepare-models:
+        condition: service_completed_successfully
+    environment:
+      MODEL_DIR: /models
+      INFERENCE_DEVICE: cpu
+      MOCK_MODE: "0"
+      HF_HUB_OFFLINE: "1"
+    volumes:
+      - model-artifacts:/models:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    image: ${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/multi-model-ai-frontend:${IMAGE_TAG:-1.0}
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
+volumes:
+  model-artifacts:

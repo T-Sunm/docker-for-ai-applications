@@ -1,0 +1,67 @@
+- [Instructor] Think of your Docker image
+like your carry-on luggage.
+You only want the essentials, not every tool you own.
+Let's take our existing Dockerfile
+and turn it into a trim multi-stage build
+that packs only exactly what we need for production.
+This Dockerfile works great, but it bundles every dependency
+and any build time baggage into one image.
+With a multi-stage build,
+we'll isolate the build tools in a builder stage,
+and then pull only the finished app
+into a clean production stage.
+First, let's create the builder stage.
+You can copy the updated code for this Dockerfile
+from the cheat sheet.
+After the first FROM statement,
+I'm going to add AS in all capitals,
+and then the stage name, which is "builder."
+Let's also change the comment and add in number one,
+and then Builder stage: install, and build everything.
+This stage will set the working directory to the app folder,
+and then it'll copy package files and install dependencies.
+We're actually going to add a new step here.
+I'm going to add a comment and type, "Copy source
+so you can run build scripts here."
+On the next line,
+I'm going to copy the local app folder from the build context,
+and copy all of its contents
+into the image's current working directory,
+in our case, the app folder.
+If we had a build to run, we would put that here,
+for example, RUN npm run build.
+Next, let's create the production stage.
+On the next line, add a comment with the number two,
+and then Production stage: runtime-only image.
+Then on the next line,
+type FROM node:current-alpine3.22 AS production.
+This will allow us to start fresh,
+and only add what we need to the base image.
+Because we're starting fresh, we need to add a few steps
+to install the necessary tools.
+First, we need to set the working directory
+using the WORKDIR instruction, and set it to the app folder.
+Then on the next line, I'm going to add a comment here,
+"Install just runtime depths, no dev tools or caches."
+Then, we can copy package files using the COPY instruction.
+On the next line, we need to add RIN npm ci,
+and then we can use the omit option and set it equal to dev.
+This will skip installing dev-only packages
+that we do not need in production.
+On the next line, we're going to copy the source code
+from the builder to the app directory.
+Let's add a comment,
+"Bring in built app or source from builder."
+Then, add a line and type COPY,
+then use the FROM option and set it equal to builder.
+After that, add a forward slash, 'app,' space,
+and then a period followed by a forward slash.
+The purpose of this is
+to grab only the artifacts you need, built files or source,
+leaving behind things like compilers.
+Now we can remove the COPY command
+before the RUN commands to create a non-root group and user.
+And for good measure,
+let's update the image version to 2.3.5.
+In the next video, we'll build our image
+and discuss the output.

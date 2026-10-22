@@ -3,6 +3,7 @@ services:
     image: backend:1.0
     build: ./backend
     command: ["python", "scripts/prepare_models.py"]
+    user: "0:0"
     restart: "no"
     volumes:
       - model-artifacts:/models

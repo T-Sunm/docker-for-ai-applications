@@ -1,0 +1,48 @@
+- [Instructor] We've set up a basic multi-stage Dockerfile,
+so now let's build our image.
+Open a terminal and type docker build.
+Then the T flag, the name of the image,
+which is your username, Docker image demo,
+and the version which we'll set to 2.3.5.
+Then, there's a period for the build context.
+In the build output,
+you now see the different build stages
+that are being used for each instruction in the Docker file.
+You may see that steps two, three,
+and four in the builder stage are cached,
+which helps to speed up the build time.
+Each build stage includes the number
+of steps required for the build.
+The builder stage has five steps
+while the production stage has six steps.
+In the production stage, instruction four installs
+only the necessary runtime dependencies.
+Instruction five pulls the finished app folder
+with your node modules and build artifacts
+from the builder stage.
+This is the heart of the multi-stage pattern,
+cherry picking only what you need.
+You may notice that these steps are run in parallel.
+The production stage doesn't wait
+for the builder stage to finish building.
+This is because Docker's newer build kit engine
+doesn't treat your Docker file
+as a simple top to bottom script.
+Instead, it builds a graph of tasks
+and runs anything it can in parallel to speed things up.
+In your two stage build,
+both the builder and production stages
+start from the same node, alpine base,
+and copy in your package .JSON
+before doing their respective NPMCI commands.
+Build kit kicks off those installs at the same time.
+Only when it reaches the copy from equals builder step
+does it wait for the builder stage
+to finish producing the app folder.
+This dependency driven scheduling
+is why you see interwoven logs
+rather than a strictly sequential
+builder then production run.
+All right, you've seen how a multi-stage build works.
+So in the next video, I'll give you a challenge
+to set up your own multi-stage build.

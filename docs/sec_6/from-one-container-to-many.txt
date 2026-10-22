@@ -1,0 +1,54 @@
+Welcome to Chapter 4.
+In Chapter 3, we build a containerized development environment for our AI
+application.
+We integrate our development environment with the dev containers to prototype a
+RAG system and run all its components inside a single development container.
+That setup was ideal for prototyping.
+But it's not how we want to run the application in production.
+In this chapter, we'll split the application into dedicated services and
+test them together in an environment that more closely resembles production.
+The guiding principle is simple.
+One responsibility per container in production.
+A container should do one job and do it well.
+When we put an entire application into a single container, we lose many of the
+benefits of containers and tightly coupled components that should remain independent.
+Why split the application?
+Five reasons.
+First, independent scaling.
+The ingestion and query pipelines have very different workloads.
+Ingestion is CPU-intensive while query is latency-sensitive.
+When they run as separate services, we can scale each one independently.
+Second, failure isolation.
+If ingestion gets tied up processing a large document, Query can continue serving
+requests.
+Third, independent updates.
+We can update the Query services without rebuilding the RAG ingestion stack.
+Fourth, right-sizing images.
+Each image contains only the dependency it needs, making images smaller, faster to
+distribute, and easier to source.
+Finally, clear boundaries.
+Separate services allow us to manage network, secrets, and resources limits
+independently.
+Here is the architecture we'll build in this chapter.
+The system consists of three services connected on a shared network.
+an ingestion service, a query service, a vector database, which has been
+running as its own container since Chapter 3.
+Clients communicate with the services over HTTP.
+The good news is that we do not have to guess where to split the application.
+The prototype already defines the boundaries.
+If we look at the API, the ingestion routes, post-ingest, and the ingestion job
+endpoints belong to one service.
+The query routes, post-query, get-documents, and get-config belong to
+another.
+The separation is already there.
+We are simply turning those logical boundaries into separate services.
+Running services in separate containers is what we mean by testing near production.
+Instead of a singular process where everything shared the same environment, we
+now have a service communicating over a network using host names, ports, and
+access rules.
+That is where many real-world issues appear.
+By testing this architecture now, we found and fixed those issues before they reach
+production.
+So the plan for this chapter is simple.
+Build each service in its own container and test them together as a complete
+system.

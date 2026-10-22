@@ -667,3 +667,180 @@ docker compose down -v
 Với project này, điều đó đồng nghĩa dữ liệu trong `model-artifacts` cũng bị xóa. Đây không phải là bước tiếp theo trong workflow thực hành mà chỉ dùng khi thực sự muốn loại bỏ cả dữ liệu model.
 
 **Tìm hiểu thêm:** Workflow trong tutorial sử dụng một `compose.yaml` và khởi động toàn bộ service cần thiết cho ứng dụng. Khi project phát triển, Compose còn cung cấp các cơ chế để điều chỉnh cách vận hành mà không cần đưa mọi trường hợp vào cùng một cấu hình. Nhiều Compose file có thể được kết hợp để giữ phần cấu hình chung ở file chính rồi bổ sung hoặc ghi đè những phần dành riêng cho development, testing hay production. Các service chỉ cần trong một số tình huống, chẳng hạn debugger hoặc monitoring tool, có thể được đặt trong **Profiles** để chỉ được bật khi cần. Trong quá trình phát triển source code, **Compose Watch** có thể theo dõi thay đổi và tự đồng bộ hoặc rebuild service tương ứng, giúp rút ngắn vòng lặp sửa code và chạy lại container.
+
+## 6. Tối ưu và phát hành Docker image
+
+Đến thời điểm này, application đã được container hóa hoàn chỉnh và có thể chạy qua Docker Compose. Frontend cũng cho phép người dùng trực tiếp thử các chức năng inference, vì vậy vấn đề tiếp theo không còn là làm sao để application chạy được, mà là **các Docker image hiện tại đã đủ gọn, an toàn và thuận tiện để chia sẻ hay chưa**. Đây là lúc chuyển từ một image chủ yếu được tạo để application hoạt động đúng sang một image được chuẩn bị kỹ hơn cho việc sử dụng và phát hành.
+
+🚩 **[FIGURE: Docker Image Optimization and Release Overview]**
+
+**Hình 16. Tổng quan quá trình từ application đang hoạt động đến Docker image được tối ưu, kiểm tra lại và phát hành.**
+
+Để thực hiện bước chuyển này, backend và frontend image sẽ được xem xét xem có đang mang theo những thành phần không còn cần thiết khi application chạy hay không, container có cần sử dụng quyền `root` hay không, và image cần được quản lý như thế nào để có thể xác định đúng version khi sử dụng lại. Sau khi được tối ưu, application sẽ được kiểm tra lại để bảo đảm các thay đổi không ảnh hưởng đến chức năng hiện có, trước khi các image được gắn version và phát hành để có thể được lấy về và chạy trên một môi trường khác.
+
+### 6.1. Kiểm tra lại application bằng smoke test
+
+Ở các mục trước, frontend đã cho phép người dùng trực tiếp thử các chức năng của application. Tuy nhiên, khi bắt đầu thay đổi Dockerfile để tối ưu image, việc lặp lại toàn bộ thao tác thủ công qua giao diện sau mỗi lần build sẽ không thuận tiện. Một **smoke test** giúp tạo ra một cách kiểm tra ngắn gọn và nhất quán để xác nhận các chức năng chính vẫn hoạt động sau những thay đổi đó.
+
+> **Smoke test** là một kiểm tra nhanh nhằm xác nhận những chức năng quan trọng của application vẫn có thể hoạt động trước khi thực hiện các kiểm tra sâu hơn.
+
+Trong project này, `scripts/smoke_test.py` được đặt ở cấp repo và chạy từ máy host sau khi Docker Compose stack đã khởi động. Script lần lượt kiểm tra trạng thái backend, Iris classification, RapidOCR và object detection bằng các request thực tế. Classification sử dụng trực tiếp bốn số đo của hoa Iris, trong khi OCR và detection dùng một ảnh PPM nhỏ được tạo ngay trong bộ nhớ, nhờ đó không cần thêm file ảnh test hay dependency riêng.
+
+```powershell
+# Xem toàn bộ scripts/smoke_test.py tại Phụ lục ...
+python scripts\smoke_test.py
+```
+
+Mỗi request phải hoàn tất thành công và trả về response phù hợp với model được cấu hình. Health check đồng thời xác nhận backend đang chạy bằng model thật thay vì mock mode. Nếu một request gặp lỗi hoặc một điều kiện kiểm tra không thỏa mãn, script sẽ dừng và báo lỗi.
+
+Một lần chạy thành công cho kết quả:
+
+```text
+[ok] health
+[ok] classification
+[ok] ocr
+[ok] detection
+Smoke test passed.
+```
+
+Khi smoke test chạy trọn vẹn, ta có một mốc kiểm tra ổn định cho trạng thái hiện tại của application. Các request đã đi qua những đường xử lý chính và được phục vụ bằng model thật. Với OCR và object detection, ảnh được tạo trong script chỉ cần đủ hợp lệ để kích hoạt luồng xử lý, nên kết quả này phù hợp để kiểm tra application vẫn vận hành như mong đợi sau khi Docker image được thay đổi.
+
+### 6.2. Tối ưu Docker image
+
+Smoke test ở Mục 6.1 đã cho ta một mốc để đối chiếu application trước và sau khi thay đổi Dockerfile. Ở phiên bản ban đầu, backend và frontend đều cài dependencies rồi chạy application trong cùng một image. Khi application đã hoạt động ổn định, quá trình build có thể được tổ chức lại để tách phần chuẩn bị dependencies khỏi môi trường thực sự dùng để chạy.
+
+> **Multi-stage build** cho phép một Dockerfile sử dụng nhiều stage, trong đó image cuối chỉ nhận những thành phần được chọn từ các stage trước.
+
+Các đoạn Dockerfile dưới đây chỉ giữ những instruction liên quan trực tiếp đến phần tối ưu đang xét, không phải nội dung đầy đủ để build image.
+
+Với backend, builder tạo virtual environment tại `/opt/venv` và cài Python dependencies vào đó. PyTorch và torchvision cũng được lấy từ CPU index vì application chỉ chạy inference trên CPU. Runtime stage sau đó nhận virtual environment đã được chuẩn bị sẵn.
+
+```dockerfile
+FROM python:3.11-slim AS builder
+
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN python -m venv "$VIRTUAL_ENV"
+
+RUN pip install --no-cache-dir \
+        torch==2.14.1 \
+        torchvision==0.29.1 \
+        --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim AS runtime
+
+COPY --from=builder /opt/venv /opt/venv
+
+# Xem Dockerfile đầy đủ tại Phụ lục.
+```
+
+Frontend cũng sử dụng hai stage, nhưng builder cài dependencies vào `/install` rồi copy chúng sang `/usr/local` của runtime.
+
+```dockerfile
+FROM python:3.11-slim AS builder
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+FROM python:3.11-slim AS runtime
+
+COPY --from=builder /install /usr/local
+
+# Xem Dockerfile đầy đủ tại Phụ lục.
+```
+
+Frontend từng được thử với virtual environment tương tự backend, nhưng image thu được khoảng 842 MB. Khi chuyển sang `--prefix`, kích thước giảm xuống khoảng 803 MB. Trường hợp này cho thấy multi-stage không đồng nghĩa image sẽ tự động nhỏ hơn, kết quả vẫn cần được build và đo trên chính application.
+
+Sau khi cập nhật Dockerfile, hai image được build lại và kiểm tra kích thước:
+
+```powershell
+docker compose build
+docker image inspect backend:1.0 frontend:1.0 --format '{{index .RepoTags 0}} {{.Size}}'
+```
+
+`docker image inspect` trả kích thước theo byte. Riêng backend còn có thể kiểm tra phần virtual environment bằng:
+
+```powershell
+docker run --rm --entrypoint du backend:1.0 -sb /opt/venv
+```
+
+Trong lần đo của project, `/opt/venv` chiếm khoảng 1,81 GB sau khi quy đổi từ byte, cho thấy phần lớn thư viện inference vẫn phải được giữ lại trong runtime image. Các số đo tổng thể được làm tròn theo MB và GB thập phân như sau. Với backend, mức giảm còn chịu ảnh hưởng lớn từ việc chuyển PyTorch kèm CUDA sang bản dành cho CPU, nên không thể quy toàn bộ chênh lệch cho multi-stage build.
+
+| Image | Trước thay đổi | Sau thay đổi |
+| --- | ---: | ---: |
+| `backend:1.0` | ~10,36 GB | ~2,81 GB |
+| `frontend:1.0` | ~820 MB | ~803 MB |
+
+Một điểm khác cần xem xét khi hoàn thiện image là **user được dùng để chạy process trong container**. Nếu Dockerfile không chuyển sang user khác, process thường chạy với `root`, trong khi backend và frontend của project không cần mức quyền này khi phục vụ request. Hai runtime image vì vậy tạo user `app` với UID/GID `10001` và sử dụng `USER app` cho process chính. `prepare-models` là ngoại lệ hiện tại vì cần ghi model artifacts vào volume, nên service này được Compose cấu hình với `user: "0:0"`.
+
+Sau khi image đã được build, hãy khởi động stack và kiểm tra trạng thái trước khi chạy lại các request inference:
+
+```powershell
+docker compose up -d
+docker compose ps -a
+python scripts\smoke_test.py
+```
+
+Ở lần kiểm tra frontend gần nhất, container đã chạy bằng UID `10001`, trả HTTP `200` và vẫn kết nối được tới `/health` của backend. Lệnh smoke test phía trên là bước tiếp theo để người đọc kiểm tra lại các đường inference trên image đã tối ưu. Chỉ khi phép kiểm tra này thực sự hoàn tất thành công mới có thể kết luận các inference path vẫn hoạt động sau thay đổi.
+
+### 6.3. Phát hành và sử dụng lại Docker image
+
+Sau khi các image đã được tối ưu và kiểm tra, bước tiếp theo là đưa chúng lên một **container registry** để có thể được lưu trữ và sử dụng lại mà không cần build từ source. Trong project này, Docker Hub được sử dụng cho backend và frontend image.
+
+> **Container registry** là dịch vụ dùng để lưu trữ và phân phối container image.
+
+Trước khi publish, namespace của Docker Hub và version được khai báo thành biến để các lệnh phía sau có thể sử dụng lại. Người thực hành chỉ cần thay `<docker-hub-username>` bằng namespace của tài khoản hoặc tổ chức tương ứng.
+
+```powershell id="j4m2fk"
+$env:REGISTRY_NAMESPACE = "<docker-hub-username>"
+$env:IMAGE_TAG = "1.0"
+
+$backendImage = "$($env:REGISTRY_NAMESPACE)/multi-model-ai-backend:$($env:IMAGE_TAG)"
+$frontendImage = "$($env:REGISTRY_NAMESPACE)/multi-model-ai-frontend:$($env:IMAGE_TAG)"
+
+docker login
+
+docker tag backend:1.0 $backendImage
+docker tag frontend:1.0 $frontendImage
+
+docker push $backendImage
+docker push $frontendImage
+```
+
+Sau khi push hoàn tất, Docker Hub sẽ chứa version `1.0` của hai image và trả về digest tương ứng. Tag và digest ở đây tiếp tục sử dụng cơ chế nhận diện image đã được giới thiệu ở Mục 3.3, nên không cần tạo lại image khi chỉ thay đổi cách tham chiếu đến nó.
+
+Để chạy application từ registry, project sử dụng `compose.release.yaml`. File này tham chiếu tới image thông qua `REGISTRY_NAMESPACE` và `IMAGE_TAG` thay vì chứa `build:` như cấu hình development. Trước khi dừng stack đang chạy, có thể để Compose resolve toàn bộ cấu hình và kiểm tra lại các image reference:
+
+```powershell id="su4a1h"
+docker compose -p ai-release -f compose.release.yaml config
+```
+
+Trong kết quả, các service cần trỏ tới đúng backend hoặc frontend image trên registry và không còn `build:`. `prepare-models` và backend cùng sử dụng backend image, còn frontend sử dụng image riêng.
+
+Sau khi cấu hình release đã đúng, development stack được dừng để giải phóng các cổng đang sử dụng. Bản release được chạy với project name `ai-release`, sau đó các image được pull từ registry trước khi container được khởi động.
+
+```powershell id="qf7m1c"
+docker compose down
+
+docker compose -p ai-release -f compose.release.yaml pull --policy always
+docker compose -p ai-release -f compose.release.yaml up -d
+docker compose -p ai-release -f compose.release.yaml ps -a
+```
+
+Trong `compose.release.yaml`, volume `model-artifacts` không được đặt `name:` cố định, vì vậy Compose đặt tên resource dựa trên project name. Ở lần chạy đầu của `ai-release`, điều này tạo một model volume tách khỏi volume của development stack. Nếu project `ai-release` đã được chạy trước đó và volume vẫn còn, Compose có thể sử dụng lại volume đó. Khi volume chưa có model artifacts, `prepare-models` sẽ chuẩn bị chúng trước khi backend sẵn sàng.
+
+Khi stack đã ổn định, trạng thái mong đợi là `prepare-models` kết thúc thành công, backend ở trạng thái `healthy` và frontend tiếp tục chạy. Cùng smoke test từ Mục 6.1 được sử dụng để kiểm tra lại các đường xử lý chính:
+
+```powershell id="mv8c2e"
+python scripts\smoke_test.py
+```
+
+Có thể mở thêm `http://localhost:8501` và thử một request từ giao diện để kiểm tra luồng sử dụng thực tế.
+
+🚩 **[FIGURE: Publishing, Pulling and Verifying Docker Images]**
+
+**Hình 17. Kết quả publish backend và frontend image lên Docker Hub, pull lại version `1.0` để chạy bản release, sau đó kiểm tra trạng thái các service và smoke test.**
+
+Trong phần thực hành này, các image được push lên Docker Hub rồi pull lại trên cùng máy, nhưng được chạy bằng Compose project và model volume riêng với development stack. Workflow tương tự có thể được sử dụng trên một máy khác khi môi trường đó có file cấu hình release, quyền truy cập image và các điều kiện cần thiết để chuẩn bị model artifacts.

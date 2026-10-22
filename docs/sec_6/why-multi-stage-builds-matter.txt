@@ -1,0 +1,60 @@
+- [Instructor] If you spend any time building Docker images,
+you probably notice how easy it is to end up
+with a hefty, cluttered image.
+Bloated images take ages to build, push slowly,
+and sit on your registry taking up space.
+Enter multi-stage builds,
+a simple feature that can transform your Docker files
+from messy to mighty.
+A Docker multi-stage build lets you split your Docker file
+into separate builder and runtime stages.
+This lets you compile all of the necessary tools,
+but include just the final lean artifacts
+in your production image.
+At its core, a multi-stage build lets you use
+one Docker file to run multiple scratch builds
+each with its own from statement.
+Think of each stage as its own mini container.
+The first stage might install compilers,
+build tools and dependencies.
+The final stage then cherry picks just the artifacts
+you need to run your app.
+When you build the image, you get a sleek single image
+that contains only what's necessary for production.
+So why does this matter?
+First, size, smaller images mean faster pulls and pushes,
+less bandwidth burned,
+and quicker starts on your CI/CD runners.
+You're not shipping the entire tool chain to production,
+just the bits that matter.
+That translates into happier developers
+no more waiting forever for builds,
+more reliable deployments and a tidier Docker registry.
+Second, security, you reduce your image's attack surface
+by stripping out compilers and building utilities.
+Each extra package is another potential vulnerability,
+and with multi-stage builds,
+you only include the bare minimum libraries
+and binaries needed at runtime.
+It's like moving from a cluttered living room full of boxes
+and extra furniture into a minimalist loft
+where everything has a purpose.
+Third, maintainability, instead of juggling
+separate build scripts or external artifacts,
+you keep everything in one Docker file.
+Each stage is self-documenting.
+You can label them builder and runtime
+so it's clear which commands belong to which phase.
+This clarity means fewer surprises when you revisit
+an old project or when a teammate steps in to help.
+And finally, caching, Docker's layer caching still works
+across stages, so if your build dependencies don't change,
+Docker can reuse those layers instead
+of rebuilding everything from scratch,
+that gives you the best of both worlds.
+Rapid feedback loops during development and lightweight,
+secure images for production.
+With multi-stage builds, you build once
+and ship lean by keeping your images small and secure,
+simplifying your Docker files
+and speeding up your pipelines.

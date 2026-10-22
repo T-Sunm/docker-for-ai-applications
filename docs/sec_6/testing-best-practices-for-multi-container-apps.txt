@@ -1,0 +1,53 @@
+We have split the prototype into services, orchestrated them with Compose, and
+verified the end-to-end workflow.
+In this final lesson, we'll step back and review the practices that help keep a
+multicontainer application reliable and reproducible.
+Let's start with the testing pyramid.
+At the base are unit tests.
+First test individual components in isolation without containers.
+They are fast, so we can have lots of them.
+Next are service tests, which validate a single service running in its own
+container.
+Above that are integration tests, where multiple services run together and we
+verify workflows such as ingesting a document and querying it.
+At the top are smoke tests, a small set of checks that confirm the system is up and
+responding.
+The goal is simply many fast tests at the bottom and fewer expensive tests at the
+top.
+Second, add health checks everywhere.
+In lesson three, we added a health check to ChromaDB.
+The same pattern applied to every service.
+Health checks help control startup order, allow orchestrators to determine when a
+service is ready and make troubleshooting much easier when something goes wrong.
+Third, manage your test data carefully.
+Integration tests should use small, predictable data sets.
+A small sample document is better than a large report that slows every test run.
+Each test should also use a fresh, temporary database collection so runs
+don't affect one another.
+When the test finish, clean everything up.
+Commands such as docker compose down -v remove both containers and volume so the
+next run starts from known state.
+The goal is reproducibility.
+The same test should produce the same result every time.
+Fourth, run the full stack in continuous integration.
+Bring up the services, run the test, and tear everything down when the job
+finishes.
+Because the stack is defined in Compose and the images are versioned, CI runs in
+the same environment you tested locally and one that closely resembles production.
+Every change is validated against the real multicontainer architecture before it
+moves forward.
+To summarize, four practices help keep multicontainer applications reliable.
+Fast unit tests, health checks on every services, predictable and disposable test
+data, running the full stack in CI.
+That concludes chapter four.
+We started with a single container prototype and transformed it into a
+multi-service application.
+We created dedicated images for ingestion and query, orchestrate them with Docker
+Compose and test them together in an environment that closely resemble
+production.
+But we are not production ready yet.
+Our images can still be optimized, security can be improved, and we haven't
+prepared the application to run in its target environment.
+That's the focus of chapter five, preparing the application for production
+by optimizing containers, validating the environment, and getting the system ready
+to run reliably at scale.

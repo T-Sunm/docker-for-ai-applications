@@ -1,0 +1,57 @@
+(soft upbeat music)
+- [Instructor] For this challenge,
+you are tasked with optimizing a Dockerfile
+to reduce the number of layers when building the image.
+Let's walk through how I'd solve this challenge.
+In Dockerfile.optimize,
+I asked you to combine run instructions
+that are related to each other.
+You should have had two run instructions in the end.
+Steps four through nine all have separate run instructions
+that can be combined.
+First, I'm going to combine the run instructions
+for installing dependencies,
+clearing the Alpine cache and installing Nodemon.
+I'm placing these on separate lines indicated by a backslash
+for better readability.
+For good measure, I'm also going to update the comment
+to list everything this one run command is doing.
+The second run instruction will include the user
+and group commands.
+I'll add a backslash after the creation of the app group
+and put the instruction to create the application user
+on the next line.
+Then I'll add another backslash
+and put the change owner command.
+And again, I'm going to update the comment
+to include everything the run command is doing.
+To finalize the Dockerfile,
+I'll update all of the comments to be in numerical order.
+I didn't ask you to do this.
+I'm just doing it for good measure.
+As you can see, we have greatly reduced the number of layers
+that would have been built from this docker file.
+Next, I ask you to build the image
+and tag it username/dockerimagedemo version 2.3.4
+to incorporate the changes in Dockerfile.optimize.
+I told you to use the F flag
+to specify you're using Dockerfile.optimize
+and not the regular Dockerfile.
+Type docker build, the F flag,
+then Dockerfile.optimize.
+Next we can use the T flag
+to tag the image with the username,
+then docker-image-demo version 2.3.4.
+Then there's a period for the build context.
+You should see in the output that we have six layers
+and the run instructions are combined.
+For extra credit, I ask you to run a container to test
+that the image is working using the docker run command.
+Type docker run, then the P flag,
+and map port 3000 in the container to 3000 on the host.
+Then at the name of our image and version, which is 2.3.4.
+And finally, navigate to local host 3000
+to confirm that the application is running.
+It works.
+That's it, good job on this challenge.
+In the next chapter, we'll work with multi-stage builds.

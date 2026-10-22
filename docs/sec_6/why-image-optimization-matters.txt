@@ -1,0 +1,62 @@
+- [Speaker] With Docker, it's easy
+to focus on getting an application running in a container
+and forget about what's behind the scenes.
+But if you're not paying attention to image size
+and structure, your containerized app could be slower,
+harder to manage, and more expensive to run.
+Optimizing your Docker images is not just a best practice.
+It's critical for performance, security, and scalability.
+A well-optimized docker image is small, efficient,
+and contains only what's necessary for your app to run.
+This makes builds faster, reduces attack surface,
+and speeds up deployment times.
+When your continuous integration, continuous deployment,
+or CICD pipeline has to pull a 200 megabyte image
+instead of a two gigabyte one.
+You're saving time on every build, multiply
+that across teams and deployments,
+and the time saved is significant.
+Smaller images also reduce the strain on network bandwidth
+and storage.
+This is especially important in environments where hundreds
+or thousands of containers are spun up
+and torn down regularly.
+In cloud hosted environments, this can translate directly
+to lower costs, both in storage and in-time build
+for provisioning compute resources.
+Security is another key factor for image optimization.
+The larger and more complex an image becomes,
+the more likely it is to contain vulnerabilities.
+Unused packages and tools can become vectors for attack.
+Keeping your image minimal helps ensure
+that only the essential components are included
+and exposed, reducing unnecessary access and potential risk.
+On the flip side,
+unoptimized docker images introduce a range of problems.
+First, slow builds
+and sluggish deployments can frustrate teams
+and delay releases.
+Also, large images can lead to timeouts during pulls,
+especially in edge or bandwidth-constrained environments.
+Debugging and troubleshooting also becomes harder
+when the image is cluttered with unnecessary layers
+or outdated dependencies.
+Worse, bloated images can result in longer cold starts,
+particularly in serverless or auto-scaling environments.
+If your app takes too long to boot up
+because the image is oversized,
+you may see degraded performance or missed scaling targets.
+In high-availability systems, this kind
+of lag is unacceptable.
+Ultimately, Docker image optimization
+is about treating containers as production-grade artifacts.
+This means managing them with the same care
+that you would any other part of your infrastructure.
+Use multi-stage builds to keep final images lean,
+pin versions to ensure reproducibility and regularly scan
+and rebuild images to address known vulnerabilities.
+In short, optimized docker images are faster, safer,
+and easier to work with.
+They keep your development
+and deployment workflows smooth, efficient, and scalable.
+Just as containers were meant to be.

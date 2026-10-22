@@ -1,0 +1,44 @@
+- [Instructor] In Docker, choosing the right base image
+and reducing image layers are key to efficient builds
+and smaller images.
+Carefully selecting your starting layer
+and combining Docker file instructions
+can cut down image size and build time.
+Let's see how this can be done.
+I have the Docker file for our project open in VS Code.
+The first line contains the from instruction
+to set the base image,
+but how do we know which base image to choose?
+Let's take a look at the node images
+available in Docker Hub.
+First, I'll search for node
+and then click on the official node image.
+Then let's click the Tags tab.
+Here you can see every version of the node image
+that is available.
+Let's search current Alpine 3.22,
+which is our base image.
+Here you can see some important information about the image,
+including the image size.
+This is helpful to compare
+so that you know you're using the most lightweight image
+that you can for your project.
+If you click on the image, you can see exactly
+what is included in each image layer.
+Using this information, you can compare it to other images
+to ensure the image you're using
+only includes what you need and nothing more.
+This page also includes information
+about known security vulnerabilities.
+At the time of this recording,
+there were no security vulnerabilities reported
+for this image.
+Back in the overview page, if you scroll down,
+you should see documentation on what exactly is included
+in each image variant for the official node image.
+I chose the Alpine image
+because it's lightweight and includes what we need
+for our project to run.
+With a lean, well supported base image,
+you'll reduce the number of image layers,
+shrink your image size, and speed up builds.
