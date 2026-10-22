@@ -1,3 +1,5 @@
+# Container hóa và phát hành ứng dụng AI với Docker
+
 ## 1. Giới thiệu
 
 Một AI application có thể chạy tốt trên máy development nhưng gặp vấn đề khi được chuyển sang một máy hoặc môi trường khác. Ngoài source code, ứng dụng còn cần đúng thư viện, model files, cấu hình và cách khởi động các thành phần liên quan. Khi project có thêm frontend, backend và nhiều model phục vụ inference, việc chuẩn bị từng phần bằng tay cũng ngày càng khó duy trì. Docker giúp đưa các thành phần này vào một quy trình nhất quán hơn, từ đóng gói môi trường chạy đến vận hành và phát hành application.
@@ -20,7 +22,7 @@ Từ bài toán đó, bài viết bắt đầu với việc tạo image và ch�
 
 Project này sử dụng một backend FastAPI để minh họa quy trình trên, nhưng các backend framework khác cũng đi qua những bước tương tự. Khi mã nguồn hoặc các yêu cầu thực thi thay đổi, image được build lại, một container mới được khởi chạy và service được kiểm tra lại.
 
-### 2.1. Từ ứng dụng đến container image
+### 2.1. Xây dựng image cho ứng dụng
 
 Những thành phần cần được chuẩn bị trong image được mô tả bằng các chỉ dẫn trong Dockerfile, nhờ đó Docker biết cách thiết lập môi trường và đưa các tệp cần thiết vào image. Với một ứng dụng Python, Dockerfile có thể được tổ chức như sau:
 
@@ -50,7 +52,7 @@ Trong chuỗi chỉ dẫn này, `RUN` và `CMD` được Docker sử dụng ở 
 
 Khi quá trình build hoàn tất, Docker tổ chức kết quả của các bước trên thành những layer chỉ đọc, từ đó tạo nên container image. Dockerfile vì thế đóng vai trò như công thức, còn image là artifact được tạo ra từ công thức đó. Ở bước tiếp theo, Docker sử dụng image làm khuôn mẫu để tạo container. 
 
-### 2.2. Từ image đến running container
+### 2.2. Tạo và chạy container
 
 Container image được tạo ở bước trước vẫn là một artifact chỉ đọc. Khi thực hiện `docker run`, Docker dùng các layer của image làm nền để tạo container, sau đó khởi động process của ứng dụng theo command đã được cấu hình trong image. Vì các image layer ban đầu không bị thay đổi, cùng một image có thể được dùng để tạo nhiều container độc lập, mỗi container duy trì trạng thái riêng trong quá trình chạy. 
 
@@ -75,7 +77,7 @@ Chỉ dẫn `EXPOSE 8080` trong Dockerfile chỉ mô tả port mà ứng dụng 
 
 Sau khi image được khởi chạy thành container và port được publish, service đã sẵn sàng để được kiểm tra ở bước tiếp theo.
 
-### 2.3. Xác minh hoạt động của containerized service
+### 2.3. Kiểm tra hoạt động của dịch vụ trong container
 
 Sau khi container được khởi chạy và port được publish, client có thể gửi request tới endpoint để kiểm tra đường truy cập từ bên ngoài vào service. Process của ứng dụng tiếp nhận request tại endpoint, thực hiện phần xử lý tương ứng và trả response về cho client. Nếu response có cấu trúc như dự kiến, có thể xác nhận request đã đi qua port được publish và service có thể xử lý request qua endpoint đã cấu hình. Để phép kiểm tra này không phụ thuộc vào một dependency chưa sẵn sàng, dependency đó có thể được thay bằng mock nhằm tạo ra response có thể dự đoán. Trong project hiện tại, model inference được mock để backend có thể được xác minh độc lập trước khi model artifact thật được tích hợp.
 
@@ -87,7 +89,7 @@ Bước xác minh này kiểm tra khả năng truy cập service và luồng x�
 
 Qua bước này, backend đã đi qua quy trình containerization cơ bản từ Dockerfile và image đến running container, sau đó được truy cập và kiểm tra thông qua service endpoint. Quy trình tương tự có thể được lặp lại khi source code hoặc các yêu cầu thực thi của ứng dụng thay đổi.
 
-## 3. Kiểm soát môi trường và quá trình build
+## 3. Quản lý môi trường chạy và quá trình build
 
 Ở mục trước, Dockerfile được sử dụng để tạo image, sau đó image được khởi chạy thành container và service được kiểm tra từ bên ngoài. Khi image cần được build lại sau mỗi lần ứng dụng thay đổi, runtime và dependencies trở thành các build input cần được kiểm soát về version, trong khi cách tổ chức các instruction trong Dockerfile ảnh hưởng đến khả năng tái sử dụng build cache. Sau quá trình build, container image được tạo ra như một artifact và có thể được kiểm tra lại thông qua configuration và metadata. Vì vậy, mục này tập trung vào ba khía cạnh: xác định môi trường thực thi, tổ chức quá trình build hiệu quả và kiểm tra image được tạo ra.
 
@@ -95,7 +97,7 @@ Qua bước này, backend đã đi qua quy trình containerization cơ bản t�
 
 **Hình 5. Mối quan hệ giữa các build input, quá trình Docker xử lý Dockerfile, container image được tạo ra và thao tác kiểm tra image sau khi build.**
 
-### 3.1. Runtime và dependencies
+### 3.1. Môi trường chạy và thư viện phụ thuộc
 
 Để source code có thể được thực thi bên trong container, image cần cung cấp runtime phù hợp cùng các dependencies mà ứng dụng sử dụng. Với backend Python trong project hiện tại, Python đóng vai trò runtime, còn những thư viện và thành phần hệ thống chưa có sẵn sẽ được bổ sung trong quá trình build.
 
@@ -112,7 +114,7 @@ Base image cung cấp nền ban đầu cho môi trường, còn các instruction
 
 **Hình 6. Quan hệ giữa base image, runtime và các nhóm dependencies tạo nên môi trường thực thi của ứng dụng.**
 
-### 3.2. Image layers và build cache
+### 3.2. Các lớp image và bộ nhớ đệm khi build
 
 Khi Docker build một image, các instruction trong Dockerfile được xử lý theo thứ tự từ trên xuống. Kết quả của nhiều bước build được tổ chức thành các **layer** chỉ đọc, sau đó các layer này được xếp chồng để hình thành image. Cấu trúc theo layer cũng là nền tảng để Docker tái sử dụng kết quả của những bước đã được thực hiện trước đó. 
 
@@ -130,7 +132,7 @@ Trong lần build tiếp theo, Docker kiểm tra từng bước để xác đị
 
 **Hình 7. Ảnh hưởng của thứ tự các instruction trong Dockerfile đến image layers và khả năng tái sử dụng build cache khi mã nguồn thay đổi.**
 
-### 3.3. Versioning và kiểm tra image
+### 3.3. Đặt phiên bản và kiểm tra image
 
 Cùng một Dockerfile không có nghĩa các lần build luôn sử dụng đúng những thành phần giống nhau. Base image có thể được cập nhật theo thời gian, hoặc một dependency có thể phát hành version mới. Khi đó, lần build sau có thể lấy về những thành phần khác dù mã nguồn và Dockerfile vẫn giữ nguyên.
 
@@ -161,7 +163,7 @@ Các command này giúp kiểm tra image sau build, chẳng hạn image đang đ
 
 Backend hiện đã được đóng gói thành container image, nhưng để chạy inference, ứng dụng vẫn cần model weights, classifier và các file liên quan. Nếu đưa toàn bộ dữ liệu này vào image, mỗi lần cập nhật model đều có thể phải build lại image dù application code không thay đổi. Vì vậy, phần này sẽ tách application image, model artifacts và runtime configuration để mỗi thành phần có thể được quản lý theo đúng vai trò.
 
-### 4.1. Tổ chức model artifacts và cấu hình
+### 4.1. Tổ chức model artifacts và cấu hình khi chạy
 
 Từ mục này trở đi, tutorial sử dụng trực tiếp repo mẫu được cung cấp trong **Phụ lục**. Trước khi lựa chọn cách lưu model artifacts, ta cần xác định backend image hiện chứa những gì và ứng dụng còn cần thêm những thành phần nào để chạy inference.
 
@@ -221,7 +223,7 @@ Các biến trên được mô tả bằng giá trị mẫu trong `.env.example`
 
 Sau khi tách application image, model artifacts và runtime configuration theo các vai trò trên, phần tiếp theo sẽ xác định nơi lưu model artifacts để container có thể sử dụng chúng qua nhiều lần chạy.
 
-## 4.2. Chuẩn bị model artifacts trên volume và chạy model thật
+### 4.2. Chuẩn bị model artifacts trên volume và thực hiện inference
 
 Khi model artifacts không còn được đóng gói trực tiếp vào backend image, ứng dụng cần một nơi lưu trữ riêng cho các file cần khi inference. Docker cung cấp volume, một vùng lưu trữ được tách khỏi filesystem riêng của container. Nhờ đó, dữ liệu có thể tiếp tục tồn tại ngay cả khi container sử dụng nó bị xóa.
 
@@ -241,7 +243,7 @@ Trước khi bắt đầu, build backend image từ repository root:
 docker build -t backend:1.0 ./backend
 ```
 
-### Bước 1. Tạo named volume
+**Bước 1. Tạo volume**
 
 Tạo volume dùng để lưu model artifacts:
 
@@ -259,7 +261,7 @@ docker volume create model-artifacts
 
 Trong những lần chạy thông thường, `model-artifacts` được giữ lại để backend tiếp tục sử dụng các model đã chuẩn bị mà không phải tải lại.
 
-### Bước 2. Chuẩn bị model artifacts
+**Bước 2. Chuẩn bị model artifacts**
 
 Thay vì để backend tự tải model khi khởi động, ta dùng chính image `backend:1.0` để chạy `prepare_models.py`. Trong tutorial này, container tạm thời thực hiện công việc đó được gọi là **preparation container**. Nó chỉ tồn tại trong thời gian chuẩn bị model, ghi dữ liệu vào volume rồi kết thúc khi script hoàn thành.
 
@@ -291,7 +293,7 @@ docker run --rm `
 
 Ở bước này, volume được mount ở chế độ read-only vì container chỉ cần đọc dữ liệu. Kết quả chỉ cho thấy các file đã xuất hiện trong `model-artifacts`, chưa chứng minh rằng model có thể được load và thực hiện inference thành công.
 
-### Bước 3. Chạy backend với model thật
+**Bước 3. Chạy backend với model đã chuẩn bị**
 
 Sau khi artifacts đã được chuẩn bị, backend mount lại cùng `model-artifacts` tại `/models`. Lần này volume được đặt ở chế độ read-only vì backend chỉ cần sử dụng dữ liệu đã có. Runtime cũng bật `HF_HUB_OFFLINE=1`, tức Hugging Face offline mode, để application chỉ sử dụng artifacts đã được chuẩn bị thay vì tải thêm dữ liệu trong lúc inference.
 
@@ -344,7 +346,7 @@ Iris classification xác nhận backend có thể load một model artifact từ
 
 **Hình 11. Kết quả kiểm tra model artifacts và runtime inference.**
 
-### Bước 4. Kiểm tra dữ liệu sau khi thay thế container
+**Bước 4. Kiểm tra dữ liệu sau khi thay thế container**
 
 Model artifacts được lưu trong `model-artifacts`, thay vì writable layer của backend container. Volume được mount vào `/models` khi backend chạy. Để kiểm tra volume thực sự có vòng đời riêng, xóa container đang chạy nhưng giữ nguyên volume:
 
@@ -356,7 +358,7 @@ Sau đó chạy lại command tạo backend ở Bước 3 mà không chạy lạ
 
 Workflow này cũng là nền tảng cho phần Docker Compose tiếp theo. Bước chuẩn bị model và backend sẽ được tổ chức thành các service riêng, nhưng vẫn sử dụng chung một model volume.
 
-## 5. Chạy ứng dụng với Docker Compose
+## 5. Vận hành ứng dụng bằng Docker Compose
 
 Ở Mục 4, người học đã tự chạy các container bằng những lệnh Docker riêng. Khi frontend cũng được đưa vào container, số thành phần cần quản lý tăng lên, kéo theo nhiều volume, biến môi trường, cổng và quan hệ khởi động cần được theo dõi đồng thời.
 
@@ -374,7 +376,7 @@ Service chuẩn bị model và backend cùng sử dụng volume `model-artifacts
 
 **Hình 12. Tổng quan mối quan hệ giữa build contexts, images, services, volume dùng chung cho model artifacts và kết nối giữa frontend với backend.**
 
-## 5.1. Tổ chức backend, frontend và `prepare-models`
+### 5.1. Tổ chức các thành phần của ứng dụng
 
 Khi đọc một file Compose, cần phân biệt **image**, **service** và **container**. Image là nền tảng để tạo container, còn service mô tả một thành phần của ứng dụng sẽ được Compose chạy như thế nào.
 
@@ -413,7 +415,7 @@ Sự khác nhau về thời gian hoạt động cũng được thể hiện qua 
 
 One-shot chỉ mô tả hành vi của service trong một lần thực thi, không có nghĩa bước chuẩn bị model chỉ xảy ra một lần trong suốt vòng đời của volume. Nếu `prepare-models` được thực thi lại, script có thể gặp artifacts đã tồn tại nhưng vẫn tiếp tục các bước chuẩn bị tương ứng. Với các model từ Hugging Face, script vẫn gọi `snapshot_download` trong bước chuẩn bị, vì vậy việc `model-artifacts` đã có dữ liệu không có nghĩa `prepare-models` chắc chắn sẽ chạy hoàn toàn offline.
 
-### Chia sẻ model artifacts qua volume
+**Chia sẻ model artifacts qua volume**
 
 Model artifacts không được đóng gói trực tiếp vào backend image. Compose gắn volume `model-artifacts` vào service chuẩn bị model và backend, còn script `prepare_models.py` là thành phần ghi dữ liệu vào volume này:
 
@@ -444,7 +446,7 @@ volumes:
 
 Thuộc tính `name` yêu cầu Docker sử dụng đúng tên `model-artifacts` thay vì thêm Compose project name vào phía trước, nhờ đó workflow Compose có thể tiếp tục sử dụng volume đã được tạo và kiểm tra ở Mục 4. Việc đặt tên cố định không biến volume thành external volume. `docker compose down` vẫn giữ named volume, còn `docker compose down -v` sẽ xóa volume cùng model artifacts bên trong.
 
-### Cấu hình khi container chạy
+**Cấu hình khi container chạy**
 
 Ngoài image và volume, backend còn cần một số giá trị được sử dụng khi container chạy. Các giá trị này được khai báo qua `environment`:
 
@@ -476,7 +478,7 @@ environment:
 
 **Tìm hiểu thêm.** Khi số lượng biến môi trường tăng hoặc cần thay đổi giữa development, testing và production, Compose có thể lấy giá trị cho variable interpolation từ `.env`, còn `env_file` giúp nạp một nhóm biến vào môi trường của container. Với token, password hoặc API key, nên dùng cơ chế quản lý secrets phù hợp thay vì ghi trực tiếp các giá trị nhạy cảm vào file cấu hình.
 
-## 5.2. Kết nối services và kiểm soát khởi động
+### 5.2. Kết nối các service và xác định thứ tự khởi động
 
 Sau khi các service đã được tổ chức trong Compose, ứng dụng cần xử lý hai mối quan hệ khác nhau. Khi chạy, frontend phải biết cách gửi request tới backend. Trong quá trình khởi động, backend chỉ nên bắt đầu sau khi `prepare-models` hoàn thành thành công, còn frontend cần chờ backend phản hồi được `/health`.
 
@@ -486,7 +488,7 @@ Sau khi các service đã được tổ chức trong Compose, ứng dụng cần
 
 Trong hình, mũi tên liền biểu diễn HTTP request, còn mũi tên nét đứt biểu diễn dependency khi khởi động. Browser/host nằm ngoài mạng Compose, trong khi frontend và backend được kết nối vào mạng mặc định do Compose tạo ra.
 
-### Giao tiếp giữa các service
+**Giao tiếp giữa các service**
 
 File `compose.yaml` không khai báo network riêng, nên Compose tạo một mạng mặc định và kết nối các service của ứng dụng vào đó. Trong mạng này, các service có thể được truy cập bằng tên đã khai báo trong Compose thay vì phải cố định địa chỉ IP của container.
 
@@ -518,7 +520,7 @@ Với mapping `"8000:8000"`, cổng bên trái được publish ra máy host, c�
 
 Mạng mặc định đã đủ cho cấu trúc hiện tại. Khi ứng dụng lớn hơn và cần giới hạn service nào được phép giao tiếp trực tiếp với nhau, Compose cho phép chia các service sang nhiều custom network. Chẳng hạn, trong kiến trúc gồm frontend, API và database, frontend có thể chỉ kết nối với API, còn database chỉ cho API truy cập.
 
-### Kiểm soát thứ tự khởi động và trạng thái service
+**Thứ tự khởi động và trạng thái service**
 
 Backend cần chờ bước chuẩn bị model hoàn thành thành công, còn frontend cần chờ backend phản hồi được `/health`. Hai điều kiện này được mô tả bằng `depends_on`:
 
@@ -581,11 +583,11 @@ Healthcheck không thay thế cho smoke test inference. Trong các hệ thống 
 
 Điều kiện trong `depends_on` cũng chỉ được dùng để phối hợp quá trình khởi động. Sau khi frontend đã chạy, nếu backend chuyển sang trạng thái `unhealthy`, Compose không tự động dừng hoặc restart frontend chỉ vì dependency health không còn đạt điều kiện.
 
-## 5.3. Kiểm tra cấu hình và vận hành ứng dụng
+### 5.3. Kiểm tra cấu hình và vận hành ứng dụng
 
 Sau khi các service, networking và quan hệ phụ thuộc đã được thiết lập, bước cuối cùng là vận hành toàn bộ ứng dụng bằng Docker Compose CLI. Workflow trong phần này đi theo một luồng duy nhất: kiểm tra cấu hình, build image, khởi động stack ở background, theo dõi log, kiểm tra trạng thái, xác minh ứng dụng rồi dừng Compose.
 
-### Kiểm tra cấu hình và khởi động ứng dụng
+**Kiểm tra cấu hình và khởi động ứng dụng**
 
 Trước khi tạo container, nên kiểm tra cấu hình mà Compose thực sự sẽ sử dụng bằng `docker compose config`. Lệnh này giúp phát hiện lỗi cấu hình và cho phép rà lại các thành phần như service, image, build context, biến môi trường, port mapping, volume mount và quan hệ phụ thuộc trước khi ứng dụng được khởi động.
 
@@ -615,7 +617,7 @@ docker compose logs -f
 
 Lệnh này hiển thị cả những log đã được ghi trước thời điểm chạy command rồi tiếp tục theo dõi các log mới. Vì vậy, ngay cả khi `prepare-models` đã hoàn thành trước đó, output của bước chuẩn bị model vẫn có thể được xem lại. Khi đã quan sát đủ thông tin, nhấn `Ctrl+C` để dừng việc theo dõi log. Thao tác này chỉ thoát khỏi `logs -f`, các container vẫn tiếp tục chạy ở background.
 
-### Kiểm tra trạng thái và xác minh ứng dụng
+**Quan sát trạng thái và thử các chức năng**
 
 Tiếp theo, kiểm tra trạng thái của toàn bộ stack bằng:
 
@@ -658,7 +660,7 @@ Nếu request trả về prediction, backend không chỉ vượt qua healthchec
 
 **Hình 15. Kết quả OCR khi kiểm tra luồng frontend–backend trên ứng dụng.**
 
-### Dừng ứng dụng
+**Dừng ứng dụng**
 
 Sau khi hoàn tất các bước kiểm tra, dừng ứng dụng và xóa các container cùng network do Compose quản lý bằng:
 
@@ -688,7 +690,7 @@ Với project này, điều đó đồng nghĩa dữ liệu trong `model-artifac
 
 Để thực hiện bước chuyển này, backend và frontend image sẽ được xem xét xem có đang mang theo những thành phần không còn cần thiết khi application chạy hay không, container có cần sử dụng quyền `root` hay không, và image cần được quản lý như thế nào để có thể xác định đúng version khi sử dụng lại. Sau khi được tối ưu, application sẽ được kiểm tra lại để bảo đảm các thay đổi không ảnh hưởng đến chức năng hiện có, trước khi các image được gắn version và phát hành để có thể được lấy về và chạy trên một môi trường khác.
 
-### 6.1. Kiểm tra lại application bằng smoke test
+### 6.1. Kiểm tra các chức năng chính của ứng dụng
 
 Ở các mục trước, frontend đã cho phép người dùng trực tiếp thử các chức năng của application. Tuy nhiên, khi bắt đầu thay đổi Dockerfile để tối ưu image, việc lặp lại toàn bộ thao tác thủ công qua giao diện sau mỗi lần build sẽ không thuận tiện. Một **smoke test** giúp tạo ra một cách kiểm tra ngắn gọn và nhất quán để xác nhận các chức năng chính vẫn hoạt động sau những thay đổi đó.
 
@@ -795,7 +797,7 @@ python scripts\smoke_test.py
 
 Ở lần kiểm tra frontend gần nhất, container đã chạy bằng UID `10001`, trả HTTP `200` và vẫn kết nối được tới `/health` của backend. Lệnh smoke test phía trên là bước tiếp theo để người đọc kiểm tra lại các đường inference trên image đã tối ưu. Chỉ khi phép kiểm tra này thực sự hoàn tất thành công mới có thể kết luận các inference path vẫn hoạt động sau thay đổi.
 
-### 6.3. Phát hành và sử dụng lại Docker image
+### 6.3. Đưa image lên registry và chạy bản phát hành
 
 Sau khi các image đã được tối ưu và kiểm tra, bước tiếp theo là đưa chúng lên một **container registry** để có thể được lưu trữ và sử dụng lại mà không cần build từ source. Trong project này, Docker Hub được sử dụng cho backend và frontend image.
 
