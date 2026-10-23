@@ -73,7 +73,7 @@ Chỉ dẫn `EXPOSE 8080` trong Dockerfile chỉ mô tả port mà ứng dụng 
 
 ![From Container Image to Running Container](<images/From Container Image to Running Container.png>)
 
-**Hình 3. Quan hệ giữa image, running container và đường đi của request tới ứng dụng bên trong container.**
+**Hình 3. Quan hệ giữa image, running container và đường đi của request tới ứng dụng trong container.**
 
 Sau khi image được khởi chạy thành container và port được publish, service đã sẵn sàng để được kiểm tra ở bước tiếp theo.
 
@@ -210,7 +210,7 @@ Từ đó, các thành phần mà backend cần có thể được chia thành b
 
 ![Separating Application, Model Artifacts, and Runtime Configuration](<images/Separating Inference Container Components.png>)
 
-**Hình 9. Phân tách application image, model artifacts và runtime configuration trong backend hiện tại.**
+**Hình 9. Phân tách application image, model artifacts và runtime configuration trong backend.**
 
 Repo đã có `scripts/prepare_models.py` để chuẩn bị model artifacts vào thư mục do `MODEL_DIR` xác định. Khi chạy local, thư mục mặc định là `backend/model-data/`, còn trong container là `/models`. Những thiết lập thay đổi theo môi trường được truyền vào container qua các biến môi trường:
 
@@ -484,7 +484,7 @@ Sau khi các service đã được tổ chức trong Compose, ứng dụng cần
 
 ![Service Communication and Startup Coordination](<images/Docker Compose Service Communication Diagram.png>)
 
-**Hình 13. Giao tiếp giữa các service trong mạng Compose và các điều kiện phối hợp thứ tự khởi động.**
+**Hình 13. Giao tiếp giữa các service trong mạng Compose và các điều kiện về thứ tự khởi động.**
 
 Trong hình, mũi tên liền biểu diễn HTTP request, còn mũi tên nét đứt biểu diễn dependency khi khởi động. Browser/host nằm ngoài mạng Compose, trong khi frontend và backend được kết nối vào mạng mặc định do Compose tạo ra.
 
@@ -856,3 +856,5 @@ Có thể mở thêm `http://localhost:8501` và thử một request từ giao d
 **Hình 17. Kết quả publish backend và frontend image lên Docker Hub, pull lại version `1.0` để chạy bản release, sau đó kiểm tra trạng thái các service và smoke test.**
 
 Trong phần thực hành này, các image được push lên Docker Hub rồi pull lại trên cùng máy, nhưng được chạy bằng Compose project và model volume riêng với development stack. Workflow tương tự có thể được sử dụng trên một máy khác khi môi trường đó có file cấu hình release, quyền truy cập image và các điều kiện cần thiết để chuẩn bị model artifacts.
+
+**Tìm hiểu thêm:** Sau khi đã có một workflow tương đối hoàn chỉnh từ build, kiểm chứng đến publish image, quá trình phát triển hằng ngày vẫn có thể được cải thiện thêm bằng **Dev Containers**, cách tách **development image** khỏi **runtime image**, hoặc các **project template** để tái sử dụng cấu trúc Docker đã ổn định cho những ứng dụng sau.
